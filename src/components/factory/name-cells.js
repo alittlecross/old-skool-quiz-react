@@ -1,9 +1,9 @@
 import React from 'react'
 
-import HighestAndLowestPoints from '../../lib/highest-and-lowest-points'
+import HighestAndLowestScores from '../../lib/highest-and-lowest-scores'
 
 const NameCellsFactory = (obj, colour) => {
-  const { highest, lowest } = HighestAndLowestPoints(obj)
+  const { highest, lowest } = HighestAndLowestScores(obj)
 
   const arr = []
 
@@ -11,16 +11,16 @@ const NameCellsFactory = (obj, colour) => {
     let className
 
     if (colour && (highest || lowest)) {
-      if (highest === value.points) {
+      if (highest === value.score) {
         className = 'highlight-yellow'
       }
 
-      if (lowest >= value.points) {
+      if (lowest >= value.score) {
         className = 'highlight-pink'
       }
     }
 
-    arr.push(<td key={key} data-id={key}><span className={className}>{value.name}</span></td>)
+    arr.push(<td key={key}><span className={className}>{value.name}</span></td>)
   }
 
   return arr

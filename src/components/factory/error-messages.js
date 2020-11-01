@@ -7,7 +7,7 @@ const ErrorMessagesFactory = obj => {
 
   for (const [key, value] of Object.entries(obj)) {
     if (value) {
-      arr.push(<ErrorMessage key={key} value={value} />)
+      arr.push(<ErrorMessage {...{ key, value }} />)
     }
   }
 

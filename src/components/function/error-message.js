@@ -1,8 +1,8 @@
 import React from 'react'
 
-const ErrorMessage = props => (
+const ErrorMessage = ({ value }) => (
   <div className='sub-heading'>
-    <span className='error'>{props.value}</span>
+    <span className='error'>{value}</span>
   </div>
 )
 

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 import { Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
@@ -9,105 +9,30 @@ import DefaultContainer from '../container/default'
 import ErrorMessagesFactory from '../factory/error-messages'
 import HandleErrors from '../../services/handle-errors'
 
-class Join extends Component {
-  constructor (props) {
-    super(props)
+const Join = ({ api, cookie, match: { params: { gamecode: _gamecode, password: _password } }, updateCookie, updateGame }) => {
+  const [errorApi, setErrorApi] = useState(null)
+  const [errorForm, setErrorForm] = useState(null)
+  const [errorGamecode, setErrorGamecode] = useState(null)
+  const [errorPassword, setErrorPassword] = useState(null)
+  const [gamecode, setGamecode] = useState(_gamecode || '')
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState(_password || '')
+  const [redirect, setRedirect] = useState(null)
 
-    this.handleChange = this.handleChange.bind(this)
-    this.handleSubmit = this.handleSubmit.bind(this)
+  errorForm && gamecode && name && password && setErrorForm(null)
+  errorGamecode && (!gamecode || /^[0-9]{3}[-][0-9]{3}$/.test(gamecode)) && setErrorGamecode(null)
+  errorPassword && (!password || /^[a-z]{3}[-][a-z]{3}$/.test(password)) && setErrorPassword(null)
 
-    const { api, match: { params: { gamecode, password } } } = this.props
+  const handleSubmit = async e => {
+    e.preventDefault()
 
-    this.state = {
-      api: `${api}/join`,
-      gamecode: gamecode,
-      errors: {
-        api: null,
-        form: null,
-        gamecode: null,
-        password: null
-      },
-      form: {
-        gamecode: '',
-        name: '',
-        password: ''
-      },
-      password: password,
-      redirect: null
-    }
-  }
+    const _errorForm = gamecode && name && password ? null : 'All fields above are required'
+    const _errorGamecode = gamecode && /^[0-9]{3}[-][0-9]{3}$/.test(gamecode) ? null : 'The gamecode format is 123-123'
+    const _errorPassword = password && /^[a-z]{3}[-][a-z]{3}$/.test(password) ? null : 'The password format is abc-abc'
 
-  componentDidMount () {
-    const { gamecode, form, password } = this.state
-
-    form.gamecode = gamecode || ''
-    form.password = password || ''
-
-    this.setState({
-      form
-    })
-  }
-
-  handleChange (event) {
-    const { errors, form, form: { gamecode: _g, name: _n, password: _p } } = this.state
-    const { name: n, value: v } = event.target
-
-    if (errors.form) {
-      if (n === 'name' && v && _g && _p) {
-        errors.form = null
-      }
-
-      if (n === 'gamecode' && v && _n && _p) {
-        errors.form = null
-      }
-
-      if (n === 'password' && v && _n && _g) {
-        errors.form = null
-      }
-    }
-
-    if (errors.gamecode && n === 'gamecode' && (!v || /^[0-9]{3}[-][0-9]{3}$/.test(v))) {
-      errors.gamecode = null
-    }
-
-    if (errors.password && n === 'password' && (!v || /^[a-z]{3}[-][a-z]{3}$/.test(v))) {
-      errors.password = null
-    }
-
-    form[n] = v
-
-    this.setState({
-      errors,
-      form
-    })
-  }
-
-  async handleSubmit (event) {
-    event.preventDefault()
-
-    const { api, errors, form: { gamecode, name, password } } = this.state
-
-    errors.api = null
-
-    if (!gamecode || !name || !password) {
-      errors.form = 'All fields above are required'
-    }
-
-    if (gamecode && !/^[0-9]{3}[-][0-9]{3}$/.test(gamecode)) {
-      errors.gamecode = 'The gamecode format is 123-123'
-    }
-
-    if (password && !/^[a-z]{3}[-][a-z]{3}$/.test(password)) {
-      errors.password = 'The password format is abc-abc'
-    }
-
-    const post = !Object.values(errors).filter(error => error !== null).length
-
-    if (post) {
+    if (!_errorForm && !_errorGamecode && !_errorPassword) {
       try {
-        const { cookie, updateCookie, updateGame } = this.props
-
-        await fetch(api, {
+        await fetch(`${api}/join`, {
           method: 'post',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -123,83 +48,73 @@ class Join extends Component {
             updateCookie(res.id)
             updateGame(res.game)
 
-            this.setState({
-              redirect: '/game/host'
-            })
+            setRedirect('/game/host')
           })
       } catch (e) {
-        errors.api = e.status === 404 ? 'Sorry, gamecode or password incorrect' : 'Unable to join quiz'
-
-        this.setState({
-          errors
-        })
+        setErrorApi(e.status === 404 ? 'Sorry, gamecode or password incorrect' : 'Unable to join quiz')
       }
     } else {
-      this.setState({
-        errors
-      })
+      setErrorApi(null)
+      setErrorForm(_errorForm)
+      setErrorGamecode(_errorGamecode)
+      setErrorPassword(_errorPassword)
     }
   }
 
-  render () {
-    const { gamecode, errors, form: f, password, redirect } = this.state
+  return (
+    <>
+      {redirect ? (
+        <Redirect to={redirect} />
+      ) : (
+        <DefaultContainer>
+          <form onSubmit={handleSubmit}>
+            <label htmlFor='name'>Enter your name...</label>
+            <input
+              autoComplete='off'
+              name='name'
+              onChange={e => setName(e.target.value)}
+              placeholder='...here'
+              spellCheck='false'
+              type='text'
+              value={name}
+            />
 
-    if (redirect) {
-      return <Redirect to={redirect} />
-    }
+            <label htmlFor='gamecode'>Gamecode...</label>
+            <input
+              autoComplete='off'
+              name='gamecode'
+              onChange={e => setGamecode(e.target.value)}
+              placeholder='...123-123'
+              readOnly={_gamecode !== undefined}
+              spellCheck='false'
+              type='text'
+              value={gamecode}
+            />
 
-    return (
-      <DefaultContainer>
-        <form onSubmit={this.handleSubmit}>
-          <label htmlFor='name'>Enter your name...</label>
-          <input
-            autoComplete='off'
-            id='name'
-            name='name'
-            onChange={this.handleChange}
-            placeholder='...here'
-            spellCheck='false'
-            type='text'
-            value={f.name}
-          />
+            <label htmlFor='password'>Password...</label>
+            <input
+              autoComplete='off'
+              name='password'
+              onChange={e => setPassword(e.target.value)}
+              placeholder='...abc-abc'
+              readOnly={_password !== undefined}
+              spellCheck='false'
+              type='password'
+              value={password}
+            />
 
-          <label htmlFor='gamecode'>Gamecode...</label>
-          <input
-            autoComplete='off'
-            id='gamecode'
-            name='gamecode'
-            onChange={this.handleChange}
-            placeholder='...123-123'
-            readOnly={gamecode !== undefined}
-            spellCheck='false'
-            type='text'
-            value={f.gamecode}
-          />
+            <button className='rubber'>Join</button>
+          </form>
 
-          <label htmlFor='password'>Password...</label>
-          <input
-            autoComplete='off'
-            id='password'
-            name='password'
-            onChange={this.handleChange}
-            placeholder='...abc-abc'
-            readOnly={password !== undefined}
-            spellCheck='false'
-            type='password'
-            value={f.password}
-          />
+          {ErrorMessagesFactory({ errorApi, errorForm, errorGamecode, errorPassword })}
 
-          <button className='rubber'>Join</button>
-        </form>
+          <p>Once you have joined, use Copy link to invite people.</p>
 
-        {ErrorMessagesFactory(errors)}
-
-        <p>Once you have joined, use Copy link to invite people.</p>
-
-        <BackLink />
-      </DefaultContainer>
-    )
-  }
+          <BackLink />
+        </DefaultContainer>
+      )}
+    </>
+  )
 }
 
 export default Join

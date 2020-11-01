@@ -19,18 +19,18 @@ const JoinPage = lazy(() => import('./components/page/join'))
 const PlayPage = lazy(() => import('./components/page/play'))
 const QuestionPage = lazy(() => import('./components/page/question'))
 
+const api = process.env.REACT_APP_API || 'http://localhost:3001'
+
 class App extends Component {
   constructor (props) {
     super(props)
 
     this.handleClick = this.handleClick.bind(this)
 
-    const api = process.env.REACT_APP_API
     const cookie = +document.cookie.split('=')[1] || null
     const game = JSON.parse(window.sessionStorage.getItem('game')) || null
 
     this.state = {
-      api: api,
       cookie: cookie,
       counting: false,
       game: cookie ? game : null,
@@ -40,7 +40,7 @@ class App extends Component {
   }
 
   componentDidMount () {
-    fetch(this.state.api)
+    fetch(api)
   }
 
   handleClick (event, picture) {
@@ -57,17 +57,17 @@ class App extends Component {
     })
   }
 
-  updateGame (g) {
-    const { api, cookie, counting, io: socket } = this.state
+  updateGame (_game) {
+    const { cookie, counting, io: socket } = this.state
 
-    const game = g ? Personalise(cookie, g) : null
+    const game = _game ? Personalise(cookie, _game) : null
 
-    if (g && counting !== g.counting) {
+    if (game && counting !== game.counting) {
       this.handleClick()
     }
 
     this.setState({
-      counting: g ? g.counting : false,
+      counting: game && game.counting,
       game,
       io: game ? socket || io(`${api}/${game.gamecode}`) : null
     }, () => {
@@ -76,15 +76,11 @@ class App extends Component {
   }
 
   render () {
-    const { game, picture } = this.state
+    const { cookie, counting, game, io, picture } = this.state
 
-    const props = (props) => ({
-      ...props,
-      ...this.state,
-      handleClick: (event, picture) => this.handleClick(event, picture),
-      updateCookie: cookie => this.updateCookie(cookie),
-      updateGame: game => this.updateGame(game)
-    })
+    const handleClick = (event, picture) => this.handleClick(event, picture)
+    const updateCookie = cookie => this.updateCookie(cookie)
+    const updateGame = game => this.updateGame(game)
 
     return (
       <Router>
@@ -101,27 +97,27 @@ class App extends Component {
 
                 <Route
                   exact path='/create'
-                  render={() => <CreatePage {...props()} />}
+                  render={() => <CreatePage {...{ api }} />}
                 />
 
                 <Route
                   path='/join/:gamecode?/:password?'
-                  render={route => <JoinPage {...props(route)} />}
+                  render={route => <JoinPage {...{ api, cookie, ...route, updateCookie, updateGame }} />}
                 />
 
                 <Route
                   exact path='/game/host'
-                  render={() => <HostPage {...props()} />}
+                  render={() => <HostPage {...{ api, cookie, game, io, updateGame }} />}
                 />
 
                 <Route
                   exact path='/game/play'
-                  render={() => <PlayPage {...props()} />}
+                  render={() => <PlayPage {...{ cookie, game, handleClick, io, updateCookie, updateGame }} />}
                 />
 
                 <Route
                   exact path='/game/question'
-                  render={() => <QuestionPage {...props()} />}
+                  render={() => <QuestionPage {...{ api, cookie, game, handleClick, updateGame }} />}
                 />
 
                 <Route
@@ -137,8 +133,8 @@ class App extends Component {
           </div>
         </div>
 
-        {(picture ? <ImgEnlargedContainer onClick={this.handleClick} picture={picture} /> : null)}
-        {(game && game.counting ? <div id='countdown'>{game.seconds}</div> : null)}
+        {(picture && <ImgEnlargedContainer onClick={this.handleClick} picture={picture} />)}
+        {(game && counting && <div id='countdown'>{game.seconds}</div>)}
       </Router>
     )
   }

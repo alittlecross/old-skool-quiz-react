@@ -1,10 +1,10 @@
 import React from 'react'
 
-const ImgEnlargedContainer = props => (
+const ImgEnlargedContainer = ({ onClick, picture }) => (
   <div id='img-enlarged-container'>
-    <div className='img-card' onClick={event => props.onClick(event, null)}>
+    <div className='img-card' onClick={e => onClick(e, null)}>
       <div>
-        <img src={props.picture} alt='Cannot find that url &nbsp;' />
+        <img src={picture} alt='Cannot find that url &nbsp;' />
       </div>
     </div>
   </div>

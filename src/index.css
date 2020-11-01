@@ -1,42 +1,3 @@
-/* #region font-size properties */
-
-input[type=text],
-input[type=password],
-label,
-p,
-.question,
-.rubber,
-.sign,
-.sub-heading,
-#points {
-  font-size: 60px;
-}
-
-.answers,
-.corner-link,
-.names,
-#menu {
-  font-size: 40px;
-}
-
-.img-card div {
-  font-size: 50px;
-}
-
-#countdown { 
-  font-size: 150px;
-}
-
-#heading {
-  font-size: 15vw;
-}
-
-#host {
-  font-size: 80px;
-}
-
-/* #endregion */
-
 /* #region font-family properties */
 
 @font-face {
@@ -69,6 +30,46 @@ p,
 
 #countdown { 
   font-family: 'digital_clock';
+}
+
+/* #endregion */
+
+/* #region font-size properties */
+
+input[type=text],
+input[type=password],
+label,
+p,
+.question,
+.rubber,
+.sign,
+.sub-heading,
+#scores {
+  font-size: 60px;
+}
+
+.answers,
+.corner-link,
+.names,
+.points,
+#menu {
+  font-size: 40px;
+}
+
+.img-card div {
+  font-size: 50px;
+}
+
+#countdown { 
+  font-size: 150px;
+}
+
+#heading {
+  font-size: 15vw;
+}
+
+#host {
+  font-size: 80px;
 }
 
 /* #endregion */
@@ -132,7 +133,8 @@ body {
   background: #444444;
 }
 
-input {
+input,
+.points {
   color: #0e00cc;
 }
 
@@ -164,8 +166,8 @@ td {
 }
 
 
-#countdown,
-.error { 
+.error,
+#countdown { 
   color: #ee0033;
 }
 
@@ -210,6 +212,10 @@ td {
 .corner-link:active {
   background: #00ffdd;
   color: #444444;
+}
+
+.points td {
+  border: none;;
 }
 
 .rubber {
@@ -304,11 +310,10 @@ td {
 }
 
 .corner-link,
-.answer,
+.points span,
 .rubber,
 .sign,
 .img-card,
-#bonus-points,
 #merge-players,
 #remove-player,
 #switch-host {
@@ -424,8 +429,28 @@ td {
   padding-top: 1vw;
 }
 
-#points-table {
+#scores-table {
   margin-top: 20px;
+}
+
+/* #endregion */
+
+/* #region JSX inline */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.post-answer-submit {
+  animation: fadeIn 1s;
+  font-family: 'meatloaf_outline' !important;
+  font-weight: bold;
+  color: #e0a5a5;
 }
 
 /* #endregion */

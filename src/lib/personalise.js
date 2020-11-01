@@ -3,6 +3,8 @@ const Personalise = (cookie, g) => {
   const { players } = game
 
   for (const [key, value] of Object.entries(players)) {
+    value.score = value.answers.reduce((a, c) => a + c.points, 0)
+
     if (!value.visible) {
       delete players[key]
     }

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 import { Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
@@ -7,116 +7,72 @@ import BackLink from '../function/back-link'
 import ConvertToJson from '../../services/convert-to-json'
 import DefaultContainer from '../container/default'
 import ErrorMessagesFactory from '../factory/error-messages'
+import HandleErrors from '../../services/handle-errors'
 
-class Create extends Component {
-  constructor (props) {
-    super(props)
+const Create = ({ api }) => {
+  const [errorApi, setErrorApi] = useState(null)
+  const [errorForm, setErrorForm] = useState(null)
+  const [name, setName] = useState('')
+  const [redirect, setRedirect] = useState(null)
 
-    this.handleChange = this.handleChange.bind(this)
-    this.handleSubmit = this.handleSubmit.bind(this)
+  errorForm && name && setErrorForm(null)
 
-    this.state = {
-      api: `${this.props.api}/create`,
-      errors: {
-        api: null,
-        form: null
-      },
-      form: {
-        name: ''
-      },
-      redirect: null
-    }
-  }
+  const handleSubmit = async e => {
+    e.preventDefault()
 
-  handleChange (event) {
-    const { errors, form } = this.state
-    const { name: n, value: v } = event.target
+    const _errorForm = name ? null : 'This field is required'
 
-    if (errors.form && v) {
-      errors.form = null
-    }
-
-    form[n] = v
-
-    this.setState({
-      errors,
-      form
-    })
-  }
-
-  async handleSubmit (event) {
-    event.preventDefault()
-
-    const { api, errors, form: { name } } = this.state
-
-    errors.api = null
-
-    if (!name) {
-      errors.form = 'This field is required'
-    }
-
-    const post = !Object.values(errors).filter(error => error !== null).length
-
-    if (post) {
+    if (!_errorForm) {
       try {
-        await fetch(api, {
+        await fetch(`${api}/create`, {
           method: 'post',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name
           })
         })
+          .then(HandleErrors)
           .then(ConvertToJson)
           .then(res => {
-            this.setState({
-              redirect: `/join/${res.gamecode}/${res.password}`
-            })
+            setRedirect(`/join/${res.gamecode}/${res.password}`)
           })
       } catch (e) {
-        errors.api = 'Unable to create quiz'
-
-        this.setState({
-          errors
-        })
+        setErrorApi('Unable to create quiz')
       }
     } else {
-      this.setState({
-        errors
-      })
+      setErrorApi(null)
+      setErrorForm(_errorForm)
     }
   }
 
-  render () {
-    const { errors, form: f, redirect } = this.state
+  return (
+    <>
+      {redirect ? (
+        <Redirect to={redirect} />
+      ) : (
+        <DefaultContainer>
+          <form onSubmit={handleSubmit}>
+            <label htmlFor='name'>Set the quiz name...</label>
+            <input
+              autoComplete='off'
+              name='name'
+              onChange={e => setName(e.target.value)}
+              placeholder='...it will replace Old Skool Quiz'
+              spellCheck='false'
+              type='text'
+              value={name}
+            />
 
-    if (redirect) {
-      return <Redirect to={redirect} />
-    }
+            <button className='rubber'>Create</button>
+          </form>
 
-    return (
-      <DefaultContainer>
-        <form onSubmit={this.handleSubmit}>
-          <label htmlFor='name'>Set the quiz name...</label>
-          <input
-            autoComplete='off'
-            id='name'
-            name='name'
-            onChange={this.handleChange}
-            placeholder='...it will replace Old Skool Quiz'
-            spellCheck='false'
-            type='text'
-            value={f.name}
-          />
+          {ErrorMessagesFactory({ errorApi, errorForm })}
 
-          <button className='rubber'>Create</button>
-        </form>
-
-        {ErrorMessagesFactory(errors)}
-
-        <BackLink />
-      </DefaultContainer>
-    )
-  }
+          <BackLink />
+        </DefaultContainer>
+      )}
+    </>
+  )
 }
 
 export default Create

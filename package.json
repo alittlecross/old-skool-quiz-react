@@ -9,11 +9,11 @@
     "react-dom": "^17.0.1",
     "react-router-dom": "^5.2.0",
     "react-scripts": "^4.0.0",
-    "socket.io-client": "^2.3.1"
+    "socket.io-client": "^2.3.0"
   },
   "scripts": {
     "start": "node index.js",
-    "start-development": "react-scripts start",
+    "react": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

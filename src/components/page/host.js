@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
@@ -9,87 +9,41 @@ import GameContainer from '../container/game'
 import HandleErrors from '../../services/handle-errors'
 import SelectOptionsFactory from '../factory/select-options'
 
-class Host extends Component {
-  constructor (props) {
-    super(props)
+const Host = ({ api, cookie, game, io, updateGame }) => {
+  const [errorApi, setErrorApi] = useState(null)
+  const [errorForm, setErrorForm] = useState(null)
+  const [id, setId] = useState('')
+  const [listen, setListen] = useState(true)
 
-    this.handleChange = this.handleChange.bind(this)
-    this.handleSubmit = this.handleSubmit.bind(this)
-
-    this.state = {
-      api: `${this.props.api}/host`,
-      errors: {
-        api: null,
-        form: null
-      },
-      form: {
-        id: ''
-      },
-      listen: true
-    }
-  }
-
-  componentDidMount () {
-    const { io, updateGame } = this.props
-
-    console.log(io)
-
-    if (io && this.state.listen) {
+  useEffect(() => {
+    if (io && listen) {
       io.on('update game', game => updateGame(game))
     }
-  }
 
-  componentWillUnmount () {
-    const { io } = this.props
-
-    if (io) {
-      io.off('update game')
+    return () => {
+      if (io) {
+        io.off('update game')
+      }
     }
-  }
+  })
 
-  handleChange (event) {
-    const { errors, form } = this.state
-    const { name: n, value: v } = event.target
+  errorForm && id && setErrorForm(null)
 
-    if (errors.form && v) {
-      errors.form = null
-    }
+  const handleSubmit = async e => {
+    e.preventDefault()
 
-    form[n] = v
+    const _errorForm = id ? null : 'A selection is required'
 
-    this.setState({
-      errors,
-      form
-    })
-  }
-
-  async handleSubmit (event) {
-    event.preventDefault()
-
-    const { api, errors, form: { id } } = this.state
-
-    errors.api = null
-
-    if (!id) {
-      errors.form = 'A selection is required'
-    }
-
-    const post = !Object.values(errors).filter(error => error !== null).length
-
-    if (post) {
+    if (!_errorForm) {
       try {
-        const { cookie, game: { gamecode }, updateGame } = this.props
+        setListen(false)
 
-        this.setState({
-          listen: false
-        })
-
-        await fetch(api, {
+        await fetch(`${api}/host`, {
           method: 'post',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             cookie,
-            gamecode,
+            gamecode: game.gamecode,
             id
           })
         })
@@ -99,48 +53,40 @@ class Host extends Component {
             updateGame(res.game)
           })
       } catch (e) {
-        errors.api = 'Unable to select host'
-
-        this.setState({
-          errors,
-          listen: true
-        })
+        setErrorApi('Unable to select host')
+        setListen(true)
       }
     } else {
-      this.setState({
-        errors
-      })
+      setErrorApi(null)
+      setErrorForm(_errorForm)
     }
   }
 
-  render () {
-    const { game } = this.props
-    const { errors } = this.state
+  const redirect = game ? game.host.id ? '/game/play' : null : '/'
 
-    const _redirect = game ? game.host.id ? '/game/play' : null : '/'
+  return (
+    <>
+      {redirect ? (
+        <Redirect to={redirect} />
+      ) : (
+        <GameContainer {...{ game }}>
+          <form onSubmit={handleSubmit}>
+            <label className='sub-heading' htmlFor='id'>Select the host...</label>
+            <select defaultValue='' name='id' onChange={e => setId(e.target.value)}>
+              <option value='' disabled>Select</option>
+              {SelectOptionsFactory(game.players)}
+            </select>
 
-    if (_redirect) {
-      return <Redirect to={_redirect} />
-    }
+            <button className='rubber'>Submit</button>
+          </form>
 
-    return (
-      <GameContainer game={game}>
-        <form onSubmit={this.handleSubmit}>
-          <label className='sub-heading' htmlFor='id'>Select the host...</label>
-          <select defaultValue='' name='id' onChange={this.handleChange}>
-            <option value='' disabled>Select</option>
-            {SelectOptionsFactory(game.players)}
-          </select>
+          {ErrorMessagesFactory({ errorApi, errorForm })}
 
-          <button className='rubber'>Submit</button>
-        </form>
-
-        {ErrorMessagesFactory(errors)}
-
-        <p>The host can change this between questions.</p>
-      </GameContainer>
-    )
-  }
+          <p>The host can change this between questions.</p>
+        </GameContainer>
+      )}
+    </>
+  )
 }
 
 export default Host

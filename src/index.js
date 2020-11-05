@@ -1,9 +1,9 @@
-import React, { Component, Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
-import io from 'socket.io-client'
+import socket from 'socket.io-client'
 
 import './index.css'
 
@@ -19,129 +19,98 @@ const JoinPage = lazy(() => import('./components/page/join'))
 const PlayPage = lazy(() => import('./components/page/play'))
 const QuestionPage = lazy(() => import('./components/page/question'))
 
-class App extends Component {
-  constructor (props) {
-    super(props)
+const App = () => {
+  const api = process.env.REACT_APP_API || 'http://localhost:3001'
 
-    this.handleClick = this.handleClick.bind(this)
+  const [cookie, setCookie] = useState(+document.cookie.split('=')[1])
+  const [counting, setCounting] = useState(false)
+  const [game, setGame] = useState(cookie && JSON.parse(window.sessionStorage.getItem('game')))
+  const [io, setIo] = useState(game && socket(`${api}/${game.gamecode}`))
+  const [picture, setPicture] = useState(null)
 
-    const api = process.env.REACT_APP_API
-    const cookie = +document.cookie.split('=')[1] || null
-    const game = JSON.parse(window.sessionStorage.getItem('game')) || null
+  useEffect(() => {
+    fetch(api)
+  })
 
-    this.state = {
-      api: api,
-      cookie: cookie,
-      counting: false,
-      game: cookie ? game : null,
-      io: game ? io(`${api}/${game.gamecode}`) : null,
-      picture: null
-    }
+  const handleClick = (_, _picture) => {
+    setPicture(picture ? null : _picture)
   }
 
-  componentDidMount () {
-    fetch(this.state.api)
+  const updateCookie = (_cookie = cookie) => {
+    setCookie(_cookie)
+
+    document.cookie = `id=${_cookie}; max-age=${60 * 60}; path=/`
   }
 
-  handleClick (event, picture) {
-    this.setState({
-      picture: this.state.picture ? null : picture
-    })
-  }
+  const updateGame = _game => {
+    const game = _game ? Personalise(cookie, _game) : null
 
-  updateCookie (cookie = this.state.cookie) {
-    this.setState({
-      cookie
-    }, () => {
-      document.cookie = `id=${cookie}; max-age=${60 * 60}; path=/`
-    })
-  }
-
-  updateGame (g) {
-    const { api, cookie, counting, io: socket } = this.state
-
-    const game = g ? Personalise(cookie, g) : null
-
-    if (g && counting !== g.counting) {
-      this.handleClick()
+    if (game && counting !== game.counting) {
+      handleClick()
     }
 
-    this.setState({
-      counting: g ? g.counting : false,
-      game,
-      io: game ? socket || io(`${api}/${game.gamecode}`) : null
-    }, () => {
-      window.sessionStorage.setItem('game', JSON.stringify(game))
-    })
+    setCounting(game && game.counting)
+    setGame(game)
+    setIo(game ? io || socket(`${api}/${game.gamecode}`) : null)
+
+    window.sessionStorage.setItem('game', JSON.stringify(game))
   }
 
-  render () {
-    const { game, picture } = this.state
+  return (
+    <Router>
+      <div id='background'>
+        <div id='background-top' />
 
-    const props = (props) => ({
-      ...props,
-      ...this.state,
-      handleClick: (event, picture) => this.handleClick(event, picture),
-      updateCookie: cookie => this.updateCookie(cookie),
-      updateGame: game => this.updateGame(game)
-    })
+        <div id='foreground'>
+          <Suspense fallback={<Fallback />}>
+            <Switch>
+              <Route
+                exact path='/'
+                component={IndexPage}
+              />
 
-    return (
-      <Router>
-        <div id='background'>
-          <div id='background-top' />
+              <Route
+                exact path='/create'
+                render={() => <CreatePage {...{ api }} />}
+              />
 
-          <div id='foreground'>
-            <Suspense fallback={<Fallback />}>
-              <Switch>
-                <Route
-                  exact path='/'
-                  component={IndexPage}
-                />
+              <Route
+                path='/join/:gamecode?/:password?'
+                render={route => <JoinPage {...{ api, cookie, ...route, updateCookie, updateGame }} />}
+              />
 
-                <Route
-                  exact path='/create'
-                  render={() => <CreatePage {...props()} />}
-                />
+              <Route
+                exact path='/game/host'
+                render={() => <HostPage {...{ api, cookie, game, io, updateGame }} />}
+              />
 
-                <Route
-                  path='/join/:gamecode?/:password?'
-                  render={route => <JoinPage {...props(route)} />}
-                />
+              <Route
+                exact path='/game/play'
+                render={() => <PlayPage {...{ cookie, game, handleClick, io, updateCookie, updateGame }} />}
+              />
 
-                <Route
-                  exact path='/game/host'
-                  render={() => <HostPage {...props()} />}
-                />
+              <Route
+                exact path='/game/question'
+                render={() => <QuestionPage {...{ api, cookie, game, handleClick, updateGame }} />}
+              />
 
-                <Route
-                  exact path='/game/play'
-                  render={() => <PlayPage {...props()} />}
-                />
+              <Route
+                exact path='/guide'
+                component={GuidePage}
+              />
 
-                <Route
-                  exact path='/game/question'
-                  render={() => <QuestionPage {...props()} />}
-                />
-
-                <Route
-                  exact path='/guide'
-                  component={GuidePage}
-                />
-
-                <Route>
-                  <Redirect to='/' />
-                </Route>
-              </Switch>
-            </Suspense>
-          </div>
+              <Route>
+                <Redirect to='/' />
+              </Route>
+            </Switch>
+          </Suspense>
         </div>
+      </div>
 
-        {(picture ? <ImgEnlargedContainer onClick={this.handleClick} picture={picture} /> : null)}
-        {(game && game.counting ? <div id='countdown'>{game.seconds}</div> : null)}
-      </Router>
-    )
-  }
+      {picture && <ImgEnlargedContainer onClick={handleClick} picture={picture} />}
+      {game && game.counting && <div id='countdown'>{game.seconds}</div>}
+    </Router>
+  )
 }
 
 ReactDOM.render(

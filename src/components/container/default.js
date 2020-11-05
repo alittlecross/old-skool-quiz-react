@@ -1,10 +1,10 @@
 import React from 'react'
 
-const DefaultContainer = props => (
+const DefaultContainer = ({ children }) => (
   <>
     <div id='heading'>Old Skool Quiz</div>
 
-    {props.children}
+    {children}
   </>
 )
 

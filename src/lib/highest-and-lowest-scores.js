@@ -1,4 +1,4 @@
-const HighestAndLowestPoints = players => {
+const HighestAndLowestScores = players => {
   const arr = []
 
   const obj = {
@@ -7,15 +7,15 @@ const HighestAndLowestPoints = players => {
   }
 
   for (const value of Object.values(players)) {
-    arr.push(value.points)
+    arr.push(value.score)
   }
 
   const distinct = [...new Set(arr)].sort((a, b) => a - b)
 
   if (distinct.length > 1) {
-    const _0 = arr.filter(point => distinct[0] === point).length
-    const _1 = arr.filter(point => distinct[1] === point).length
-    const _2 = arr.filter(point => distinct[2] === point).length
+    const _0 = arr.filter(score => distinct[0] === score).length
+    const _1 = arr.filter(score => distinct[1] === score).length
+    const _2 = arr.filter(score => distinct[2] === score).length
 
     const _3rd = _0 + _1 + _2 <= 4
     const _2nd = _0 + _1 <= 4
@@ -27,4 +27,4 @@ const HighestAndLowestPoints = players => {
   return obj
 }
 
-export default HighestAndLowestPoints
+export default HighestAndLowestScores

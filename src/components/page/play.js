@@ -1,19 +1,17 @@
-import React, { Component } from 'react'
+import React, { useEffect } from 'react'
 import { Redirect } from 'react-router-dom'
 
-import AnswerForm from '../class/answer-form'
+import AnswerForm from '../function/answer-form'
 import AskNextQuestionLink from '../function/ask-next-question-link'
-import EndCountdownButton from '../class/end-countdown-button'
+import EndCountdownButton from '../function/end-countdown-button'
 import GameContainer from '../container/game'
 import GuideLink from '../function/guide-link'
-import MenuTables from '../class/menu-tables'
-import PointsTable from '../function/points-table'
-import QuestionTables from '../function/question-tables'
+import Menu from '../function/menu'
+import Questions from '../function/questions'
+import ScoresTable from '../function/scores-table'
 
-class Play extends Component {
-  componentDidMount () {
-    const { cookie, io, updateGame } = this.props
-
+const Play = ({ cookie, game, handleClick, io, updateCookie, updateGame }) => {
+  useEffect(() => {
     if (io) {
       io.on('remove player', id => {
         if (cookie === +id) {
@@ -23,45 +21,41 @@ class Play extends Component {
 
       io.on('update game', game => updateGame(game))
     }
-  }
 
-  componentWillUnmount () {
-    const { io } = this.props
-
-    if (io) {
-      io.off('remove player')
-      io.off('update game')
+    return () => {
+      if (io) {
+        io.off('remove player')
+        io.off('update game')
+      }
     }
-  }
+  })
 
-  render () {
-    const { cookie, game } = this.props
+  const redirect = game ? game.host.id ? null : '/game/host' : '/'
 
-    const _redirect = game ? game.host.id ? null : '/game/host' : '/'
+  return (
+    <>
+      {redirect ? (
+        <Redirect to={redirect} />
+      ) : (
+        <GameContainer {...{ game }}>
+          <div className='sub-heading'>
+            Asking the questions is... <span id='host'>{game.host.name}</span>
+          </div>
 
-    if (_redirect) {
-      return <Redirect to={_redirect} />
-    }
+          {!game.counting && cookie === game.host.id && <AskNextQuestionLink />}
+          {!game.counting && <ScoresTable {...{ game }} />}
+          {!game.counting && cookie === game.host.id && <Menu {...{ game, io }} />}
 
-    return (
-      <>
-        <GameContainer game={game}>
-          <div className='sub-heading'>Asking the questions is... <span id='host'>{game.host.name}</span></div>
+          {game.counting && cookie !== game.host.id && <AnswerForm {...{ cookie, io, updateCookie }} />}
+          {game.counting && cookie === game.host.id && <EndCountdownButton {...{ io }} />}
 
-          {(!game.counting && cookie === game.host.id ? <AskNextQuestionLink /> : null)}
-          {(!game.counting ? <PointsTable {...this.props} /> : null)}
-          {(!game.counting && cookie === game.host.id ? <MenuTables {...this.props} /> : null)}
-
-          {(game.counting && cookie !== game.host.id ? <AnswerForm {...this.props} /> : null)}
-          {(game.counting && cookie === game.host.id ? <EndCountdownButton {...this.props} /> : null)}
-
-          <QuestionTables {...this.props} />
+          <Questions {...{ cookie, game, handleClick, io }} />
 
           <GuideLink />
         </GameContainer>
-      </>
-    )
-  }
+      )}
+    </>
+  )
 }
 
 export default Play

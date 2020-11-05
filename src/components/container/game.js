@@ -1,19 +1,15 @@
 import React from 'react'
 
-import CopyLinkLink from '../class/copy-link-link'
+import CopyLinkLink from '../function/copy-link-link'
 
-const GameContainer = props => {
-  const { children, game: { gamecode, name, password } } = props
+const GameContainer = ({ children, game: { gamecode, name, password } }) => (
+  <>
+    <div id='heading'>{name}</div>
 
-  return (
-    <>
-      <div id='heading'>{name}</div>
+    {children}
 
-      {children}
-
-      <CopyLinkLink gamecode={gamecode} password={password} />
-    </>
-  )
-}
+    <CopyLinkLink {...{ gamecode, password }} />
+  </>
+)
 
 export default GameContainer

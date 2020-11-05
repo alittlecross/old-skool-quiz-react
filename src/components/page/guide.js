@@ -14,11 +14,6 @@ const Guide = () => (
     <p>This can be used to pass hosting duties to another player.</p>
     <p>Click the ✓ below the player whom you want to pass hosting duties to.</p>
 
-    <div className='sub-heading'><span className='highlight-green'>Bonus points...</span></div>
-
-    <p>Points can be adjusted if an answer is worth more than one point.</p>
-    <p>Click the + or - below a player to add or remove bonus points.</p>
-
     <div className='sub-heading'><span className='highlight-blue'>Merge players...</span></div>
 
     <p>If for any reason a player joins twice, their columns can be merged.</p>

@@ -1,4 +1,4 @@
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 import { Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
@@ -9,101 +9,33 @@ import GameContainer from '../container/game'
 import HandleErrors from '../../services/handle-errors'
 import ImgContainer from '../function/img-container'
 
-class Question extends Component {
-  constructor (props) {
-    super(props)
+const Question = ({ api, cookie, game, handleClick, updateGame }) => {
+  const [errorApi, setErrorApi] = useState(null)
+  const [errorForm, setErrorForm] = useState(null)
+  const [errorSeconds, setErrorSeconds] = useState(null)
+  const [answer, setAnswer] = useState('')
+  const [picture, setPicture] = useState('')
+  const [question, setQuestion] = useState('')
+  const [seconds, setSeconds] = useState(game && game.seconds)
 
-    this.handleChange = this.handleChange.bind(this)
-    this.handleSubmit = this.handleSubmit.bind(this)
+  errorForm && answer && question && seconds && setErrorForm(null)
+  errorSeconds && (!seconds || /^([0-5]?[0-9]|60)$/.test(seconds)) && setSeconds(null)
 
-    const { api, game } = this.props
+  const handleSubmit = async e => {
+    e.preventDefault()
 
-    this.state = {
-      api: `${api}/question`,
-      errors: {
-        api: null,
-        form: null,
-        seconds: null
-      },
-      form: {
-        answer: '',
-        picture: '',
-        question: '',
-        seconds: ''
-      },
-      redirect: null,
-      seconds: game ? game.seconds : null
-    }
-  }
+    const _errorForm = answer && question && seconds ? null : 'All fields above are required'
+    const _errorSeconds = seconds && /^([0-5]?[0-9]|60)$/.test(seconds) ? null : 'The seconds field accepts numbers from 0 to 60'
 
-  componentDidMount () {
-    const { form, seconds } = this.state
-
-    form.seconds = seconds || ''
-
-    this.setState({
-      form
-    })
-  }
-
-  handleChange (event) {
-    const { errors, form, form: { answer: _a, question: _q, seconds: _s } } = this.state
-    const { name: n, value: v } = event.target
-
-    if (errors.form) {
-      if (n === 'answer' && v && _q && _s) {
-        errors.form = null
-      }
-
-      if (n === 'question' && v && _a && _s) {
-        errors.form = null
-      }
-
-      if (n === 'seconds' && v && _a && _q) {
-        errors.form = null
-      }
-    }
-
-    if (errors.seconds && n === 'seconds' && (!v || /^([0-5]?[0-9]|60)$/.test(v))) {
-      errors.seconds = null
-    }
-
-    form[n] = v
-
-    this.setState({
-      errors,
-      form
-    })
-  }
-
-  async handleSubmit (event) {
-    event.preventDefault()
-
-    const { api, errors, form: { answer, picture, question, seconds } } = this.state
-
-    errors.api = null
-
-    if (!answer || !question || !seconds) {
-      errors.form = 'All fields above are required'
-    }
-
-    if (seconds && !/^([0-5]?[0-9]|60)$/.test(seconds)) {
-      errors.seconds = 'The seconds field accepts numbers from 0 to 60'
-    }
-
-    const post = !Object.values(errors).filter(error => error !== null).length
-
-    if (post) {
+    if (!_errorForm && !_errorSeconds) {
       try {
-        const { cookie, game: { gamecode }, updateGame } = this.props
-
-        await fetch(api, {
+        await fetch(`${api}/question`, {
           method: 'post',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             answer,
             cookie,
-            gamecode,
+            gamecode: game.gamecode,
             picture,
             question,
             seconds
@@ -115,87 +47,76 @@ class Question extends Component {
             updateGame(res.game)
           })
       } catch (e) {
-        errors.api = 'Unable to submit question'
-
-        this.setState({
-          errors
-        })
+        setErrorApi('Unable to submit question')
       }
     } else {
-      this.setState({
-        errors
-      })
+      setErrorApi(null)
+      setErrorForm(_errorForm)
+      setErrorSeconds(_errorSeconds)
     }
   }
 
-  render () {
-    const { cookie, game, handleClick } = this.props
-    const { errors, form: f } = this.state
+  const redirect = game ? cookie === game.host.id && !game.counting ? null : '/game/play' : '/'
 
-    const _redirect = game ? cookie === game.host.id && !game.counting ? null : '/game/play' : '/'
+  return (
+    <>
+      {redirect ? (
+        <Redirect to={redirect} />
+      ) : (
+        <GameContainer {...{ game }}>
+          <form onSubmit={handleSubmit}>
+            <label htmlFor='question'>Enter the question...</label>
+            <input
+              autoComplete='off'
+              name='question'
+              onChange={e => setQuestion(e.target.value)}
+              placeholder='...here'
+              type='text'
+              value={question}
+            />
 
-    if (_redirect) {
-      return <Redirect to={_redirect} />
-    }
+            <label htmlFor='answer'>Enter the answer...</label>
+            <input
+              autoComplete='off'
+              name='answer'
+              onChange={e => setAnswer(e.target.value)}
+              placeholder='...here'
+              type='text'
+              value={answer}
+            />
 
-    return (
-      <GameContainer game={game}>
-        <form onSubmit={this.handleSubmit}>
-          <label htmlFor='question'>Enter the question...</label>
-          <input
-            autoComplete='off'
-            id='question'
-            name='question'
-            onChange={this.handleChange}
-            placeholder='...here'
-            type='text'
-            value={f.question}
-          />
+            <label htmlFor='seconds'>Seconds to count down...</label>
+            <input
+              autoComplete='off'
+              name='seconds'
+              onChange={e => setSeconds(e.target.value)}
+              placeholder='...0-60'
+              type='text'
+              value={seconds}
+            />
 
-          <label htmlFor='answer'>Enter the answer...</label>
-          <input
-            autoComplete='off'
-            id='answer'
-            name='answer'
-            onChange={this.handleChange}
-            placeholder='...here'
-            type='text'
-            value={f.answer}
-          />
+            <button className='rubber'>Submit</button>
 
-          <label htmlFor='seconds'>Seconds to count down...</label>
-          <input
-            autoComplete='off'
-            id='seconds'
-            name='seconds'
-            onChange={this.handleChange}
-            placeholder='...0-60'
-            type='text'
-            value={f.seconds}
-          />
+            {ErrorMessagesFactory({ errorApi, errorForm, errorSeconds })}
 
-          <button className='rubber'>Submit</button>
+            <p>Optional</p>
 
-          {ErrorMessagesFactory(errors)}
+            <label htmlFor='picture'>Enter a picture url...</label>
+            <input
+              autoComplete='off'
+              name='picture'
+              onChange={e => setPicture(e.target.value)}
+              placeholder='...here'
+              type='text'
+              value={picture}
+            />
+          </form>
 
-          <p>Optional</p>
-
-          <label htmlFor='picture'>Enter a picture url...</label>
-          <input
-            autoComplete='off'
-            id='picture'
-            name='picture'
-            onChange={this.handleChange}
-            placeholder='...here'
-            type='text'
-            value={f.picture}
-          />
-        </form>
-
-        {(f.picture ? <ImgContainer onClick={handleClick} picture={f.picture} /> : null)}
-      </GameContainer>
-    )
-  }
+          {picture && <ImgContainer onClick={handleClick} picture={picture} />}
+        </GameContainer>
+      )}
+    </>
+  )
 }
 
 export default Question

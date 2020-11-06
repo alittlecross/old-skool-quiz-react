@@ -26,10 +26,28 @@ const App = () => {
   const [counting, setCounting] = useState(false)
   const [game, setGame] = useState(cookie && JSON.parse(window.sessionStorage.getItem('game')))
   const [io, setIo] = useState(game && socket(`${api}/${game.gamecode}`))
+  const [listen, setListen] = useState(true)
   const [picture, setPicture] = useState(null)
 
   useEffect(() => {
     fetch(api)
+
+    if (io && listen) {
+      io.on('remove player', id => {
+        if (cookie === +id) {
+          updateGame()
+        }
+      })
+
+      io.on('update game', game => updateGame(game))
+    }
+
+    return () => {
+      if (io && listen) {
+        io.off('remove player')
+        io.off('update game')
+      }
+    }
   })
 
   const handleClick = (_, _picture) => {
@@ -49,9 +67,16 @@ const App = () => {
       handleClick()
     }
 
+    if (!io) {
+      setIo(socket(`${api}/${game.gamecode}`))
+    }
+
+    if (!listen) {
+      setListen(true)
+    }
+
     setCounting(game && game.counting)
     setGame(game)
-    setIo(game ? io || socket(`${api}/${game.gamecode}`) : null)
 
     window.sessionStorage.setItem('game', JSON.stringify(game))
   }
@@ -81,12 +106,12 @@ const App = () => {
 
               <Route
                 exact path='/game/host'
-                render={() => <HostPage {...{ api, cookie, game, io, updateGame }} />}
+                render={() => <HostPage {...{ api, cookie, game, setListen, updateGame }} />}
               />
 
               <Route
                 exact path='/game/play'
-                render={() => <PlayPage {...{ cookie, game, handleClick, io, updateCookie, updateGame }} />}
+                render={() => <PlayPage {...{ cookie, game, handleClick, io, updateCookie }} />}
               />
 
               <Route

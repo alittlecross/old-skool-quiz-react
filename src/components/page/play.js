@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Redirect } from 'react-router-dom'
 
 import AnswerForm from '../function/answer-form'
@@ -10,26 +10,7 @@ import Menu from '../function/menu'
 import Questions from '../function/questions'
 import ScoresTable from '../function/scores-table'
 
-const Play = ({ cookie, game, handleClick, io, updateCookie, updateGame }) => {
-  useEffect(() => {
-    if (io) {
-      io.on('remove player', id => {
-        if (cookie === +id) {
-          updateGame()
-        }
-      })
-
-      io.on('update game', game => updateGame(game))
-    }
-
-    return () => {
-      if (io) {
-        io.off('remove player')
-        io.off('update game')
-      }
-    }
-  })
-
+const Play = ({ cookie, game, handleClick, io, updateCookie }) => {
   const redirect = game ? game.host.id ? null : '/game/host' : '/'
 
   return (

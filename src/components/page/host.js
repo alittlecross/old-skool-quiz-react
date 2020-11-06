@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Redirect } from 'react-router-dom'
 
 import fetch from 'node-fetch'
@@ -9,23 +9,10 @@ import GameContainer from '../container/game'
 import HandleErrors from '../../services/handle-errors'
 import SelectOptionsFactory from '../factory/select-options'
 
-const Host = ({ api, cookie, game, io, updateGame }) => {
+const Host = ({ api, cookie, game, setListen, updateGame }) => {
   const [errorApi, setErrorApi] = useState(null)
   const [errorForm, setErrorForm] = useState(null)
   const [id, setId] = useState('')
-  const [listen, setListen] = useState(true)
-
-  useEffect(() => {
-    if (io && listen) {
-      io.on('update game', game => updateGame(game))
-    }
-
-    return () => {
-      if (io) {
-        io.off('update game')
-      }
-    }
-  })
 
   errorForm && id && setErrorForm(null)
 

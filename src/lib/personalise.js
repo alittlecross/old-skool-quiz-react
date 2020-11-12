@@ -1,28 +1,19 @@
-const Personalise = (cookie, g) => {
-  const game = { ...g }
-  const { players } = game
+const Personalise = (cookie, _game) => {
+  const game = { ..._game }
 
-  for (const [key, value] of Object.entries(players)) {
-    value.score = value.answers.reduce((a, c) => a + c.points, 0)
-
-    if (!value.visible) {
-      delete players[key]
-    }
+  if (game.active) {
+    if (cookie !== game.host.id) delete game.active.correct
   }
 
-  game.questions.forEach((q, i) => {
-    if (!q.showAnswer) {
-      delete q.answer
+  for (const [key, value] of Object.entries(game.players)) {
+    if (value.active) {
+      if (cookie !== +key && cookie !== game.host.id) delete game.players[key].active.answer
     }
 
-    for (const [key, value] of Object.entries(players)) {
-      if (value.answers[i] && !value.answers[i].visible) {
-        if (cookie !== +key && cookie !== game.host.id) {
-          delete value.answers[i].answer
-        }
-      }
-    }
-  })
+    game.players[key].score = value.answers.reduce((a, c) => a + c.points, 0)
+
+    if (!value.visible) delete game.players[key]
+  }
 
   return game
 }

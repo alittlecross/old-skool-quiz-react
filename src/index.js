@@ -2,24 +2,25 @@ import React, { Component, Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom'
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom'
 
-import fetch from 'node-fetch'
-import io from 'socket.io-client'
+import Socket from 'socket.io-client'
 
 import './index.css'
 
-import Fallback from './components/page/fallback'
-import ImgEnlargedContainer from './components/function/img-enlarged-container'
 import Personalise from './lib/personalise'
+import { Get } from './services/fetch'
 
-const CreatePage = lazy(() => import('./components/page/create'))
-const GuidePage = lazy(() => import('./components/page/guide'))
-const HostPage = lazy(() => import('./components/page/host'))
-const IndexPage = lazy(() => import('./components/page/index'))
-const JoinPage = lazy(() => import('./components/page/join'))
-const PlayPage = lazy(() => import('./components/page/play'))
-const QuestionPage = lazy(() => import('./components/page/question'))
+import Fallback from './components/pages/fallback'
+import ImgCard from './components/img-card'
 
-const api = process.env.REACT_APP_API || 'http://localhost:3001'
+const CreatePage = lazy(() => import('./components/pages/create'))
+const GuidePage = lazy(() => import('./components/pages/guide'))
+const HostPage = lazy(() => import('./components/pages/host'))
+const IndexPage = lazy(() => import('./components/pages/index'))
+const JoinPage = lazy(() => import('./components/pages/join'))
+const PlayPage = lazy(() => import('./components/pages/play'))
+const QuestionPage = lazy(() => import('./components/pages/question'))
+
+const API = process.env.REACT_APP_API || 'http://localhost:3001'
 
 class App extends Component {
   constructor (props) {
@@ -34,13 +35,13 @@ class App extends Component {
       cookie: cookie,
       counting: false,
       game: cookie ? game : null,
-      io: game ? io(`${api}/${game.gamecode}`) : null,
+      io: game ? Socket(`${API}/${game.gamecode}`) : null,
       picture: null
     }
   }
 
   componentDidMount () {
-    fetch(api)
+    Get()
   }
 
   handleClick (event, picture) {
@@ -58,18 +59,16 @@ class App extends Component {
   }
 
   updateGame (_game) {
-    const { cookie, counting, io: socket } = this.state
+    const { cookie, counting, io } = this.state
 
     const game = _game ? Personalise(cookie, _game) : null
 
-    if (game && counting !== game.counting) {
-      this.handleClick()
-    }
+    if (game && counting === !game.active) this.handleClick()
 
     this.setState({
-      counting: game && game.counting,
+      counting: game && game.active && true,
       game,
-      io: game ? socket || io(`${api}/${game.gamecode}`) : null
+      io: game ? io || Socket(`${API}/${game.gamecode}`) : null
     }, () => {
       window.sessionStorage.setItem('game', JSON.stringify(game))
     })
@@ -97,17 +96,17 @@ class App extends Component {
 
                 <Route
                   exact path='/create'
-                  render={() => <CreatePage {...{ api }} />}
+                  render={() => <CreatePage />}
                 />
 
                 <Route
                   path='/join/:gamecode?/:password?'
-                  render={route => <JoinPage {...{ api, cookie, ...route, updateCookie, updateGame }} />}
+                  render={route => <JoinPage {...{ cookie, ...route, updateCookie, updateGame }} />}
                 />
 
                 <Route
                   exact path='/game/host'
-                  render={() => <HostPage {...{ api, cookie, game, io, updateGame }} />}
+                  render={() => <HostPage {...{ cookie, game, io, updateGame }} />}
                 />
 
                 <Route
@@ -117,7 +116,7 @@ class App extends Component {
 
                 <Route
                   exact path='/game/question'
-                  render={() => <QuestionPage {...{ api, cookie, game, handleClick, updateGame }} />}
+                  render={() => <QuestionPage {...{ cookie, game, handleClick, updateCookie, updateGame }} />}
                 />
 
                 <Route
@@ -133,8 +132,8 @@ class App extends Component {
           </div>
         </div>
 
-        {(picture && <ImgEnlargedContainer onClick={this.handleClick} picture={picture} />)}
-        {(game && counting && <div id='countdown'>{game.seconds}</div>)}
+        {(picture && <ImgCard enlarged onClick={this.handleClick} picture={picture} />)}
+        {(counting && <div id='countdown'>{game.seconds}</div>)}
       </Router>
     )
   }
